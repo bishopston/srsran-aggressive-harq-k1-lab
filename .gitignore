@@ -1,0 +1,26 @@
+cat > .gitignore <<'EOF'
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+*.tmp
+*~
+
+# Python / misc
+__pycache__/
+*.pyc
+
+# Large runtime artifacts (do NOT version these)
+results/*.log
+results/*.pcap
+results/*.pcapng
+results/*.bin
+
+# Optional: if you later add compressed logs, keep them out by default
+results/*.gz
+results/*.xz
+results/*.zip
+
+# Local scratch
+scratch/
+EOF

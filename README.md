@@ -1,0 +1,406 @@
+# srsran-aggressive-harq-k1-lab
+
+Aggressive HARQ-ACK timing (k1) experiment for srsRAN (ZMQ PHY) with RTT comparison.
+
+This repo contains:
+- a minimal scheduler patch (k1 prioritization)
+- baseline + aggressive run artifacts (ping + logs)
+- step-by-step instructions to reproduce from scratch
+
+---
+
+## 0) What you will achieve
+
+You will:
+1) Clone **srsRAN_Project** twice (baseline + aggressive)
+2) Build both
+3) Run the same Core + UE setup
+4) Run `ping -c 200` from UE namespace
+5) Compare RTT statistics
+6) Verify scheduler behavior via logs (“BASELINE-HARQ” vs “AGGRESSIVE-HARQ”)
+
+---
+
+## 1) Prerequisites (Ubuntu)
+
+You need:
+- git
+- cmake + ninja
+- g++ / build-essential
+- docker + docker compose
+- iproute2
+
+
+## 2) Configuration files
+
+The directory `configs/` contains reference ZMQ configurations used in this lab:
+
+- `gnb_zmq.yaml` – gNB ZMQ PHY configuration
+- `ue_zmq.conf` – UE ZMQ configuration
+
+You may adapt IP addresses or ports to your local setup, but
+scheduler behavior and HARQ results are validated using these files.
+
+
+
+Example install (Ubuntu):
+```bash
+sudo apt update
+sudo apt install -y git cmake ninja-build build-essential iproute2 ccache \
+  pkg-config libfftw3-dev libmbedtls-dev libyaml-cpp-dev libsctp-dev \
+  libzmq3-dev libczmq-dev cppzmq-dev
+```
+
+Docker (install if not already):
+
+```bash
+sudo apt install -y docker.io docker-compose-plugin
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+⚠️ Important version note
+
+This lab is validated against:
+- srsRAN_Project commit: 9d5dd742a
+- srsRAN_4G commit: ec29b0c1f
+
+Using different commits may:
+- fail to build
+- change scheduler behavior
+- invalidate RTT comparisons
+
+
+2) Directory layout (recommended)
+
+Create a clean workspace:
+
+```
+mkdir -p ~/srs_harq_lab
+cd ~/srs_harq_lab
+```
+
+You will have:
+
+~/srs_harq_lab/
+  srsRAN_Project_baseline/      (commit 9d5dd742a)
+  srsRAN_Project_aggressive/    (same commit + patch)
+  srsRAN_4G_UE/                 (commit ec29b0c1f)
+  harq_results/
+
+
+Create results directory:
+```
+mkdir -p ~/srs_harq_lab/harq_results
+```
+
+3) Clone and checkout srsRAN gNB (baseline)
+```
+cd ~/srs_harq_lab
+git clone https://github.com/srsran/srsRAN_Project srsRAN_Project_baseline
+cd srsRAN_Project_baseline
+git checkout 9d5dd742a
+```
+
+Build baseline:
+
+```
+rm -rf build
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_PLUGINS=ON \
+  -DENABLE_ZEROMQ=ON
+cmake --build build -j 2
+```
+
+4) Clone and checkout srsRAN gNB (aggressive)
+```
+cd ~/srs_harq_lab
+git clone https://github.com/srsran/srsRAN_Project srsRAN_Project_aggressive
+cd srsRAN_Project_aggressive
+git checkout 9d5dd742a
+```
+
+Apply the patch from THIS repo:
+
+Assuming you cloned this lab repo as ~/srsran-aggressive-harq-k1-lab:
+
+git apply ~/srsran-aggressive-harq-k1-lab/patches/aggressive-harq-k1.patch
+
+### Alternative to patch application (manual copy)
+
+If `git apply patches/aggressive-harq-k1.patch` fails on your system,
+you can manually apply the change by copying the provided modified file:
+
+```bash
+cp \
+modified_files/lib/scheduler/uci_scheduling/uci_allocator_impl.cpp \
+<srsRAN_Project_root>/lib/scheduler/uci_scheduling/
+```
+
+
+Build aggressive:
+
+```
+rm -rf build
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_PLUGINS=ON \
+  -DENABLE_ZEROMQ=ON
+cmake --build build -j 2
+```
+
+5) Clone and checkout UE project (srsRAN_4G)
+```
+cd ~/srs_harq_lab
+git clone https://github.com/srsran/srsRAN_4G srsRAN_4G_UE
+cd srsRAN_4G_UE
+git checkout ec29b0c1f
+```
+
+Build UE (example steps — depending on your environment/config):
+
+```
+mkdir -p build
+cd build
+sudo apt update
+sudo apt install -y gcc-11 g++-11
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_CXX_COMPILER=g++-11
+cmake --build . -j 2
+```
+
+Note: Your UE runtime YAML and ZMQ parameters must match your lab setup.
+
+6) Start 5G Core (Docker)
+
+Go to the core directory you use (example: srsRAN docker 5GC):
+
+```
+cd <your_core_docker_folder>
+sudo docker compose up -d 5gc
+sudo docker ps
+```
+
+7) Run procedure: baseline measurement
+7.1 Start baseline gNB
+```
+sudo stdbuf -oL -eL \
+  ~/srs_harq_lab/srsRAN_Project_baseline/build/apps/gnb/gnb \
+  -c <your_gnb_yaml> \
+  log --filename /tmp/gnb_baseline.log \
+      --mac_level debug \
+      --fapi_level debug \
+      --phy_level info \
+      --radio_level info \
+      --all_level warning
+```
+
+7.2 Start UE + create namespace
+
+Example namespace approach:
+
+```
+sudo ip netns add ue1 || true
+sudo ip netns list
+```
+
+Start UE inside namespace (example):
+```
+sudo ip netns exec ue1 <your_ue_command>
+```
+
+7.3 Add routes (example)
+
+```
+sudo ip route add 10.45.0.0/16 via 10.53.1.2
+sudo ip netns exec ue1 ip route add default via 10.45.1.1 dev tun_srsue
+```
+
+7.4 Run 200 pings (baseline)
+
+```
+sudo ip netns exec ue1 ping 10.45.1.1 -c 200 | tee ~/srs_harq_lab/harq_results/ping_baseline_200.txt
+```
+
+Save logs:
+
+```
+sudo cp /tmp/gnb_baseline.log ~/srs_harq_lab/harq_results/gnb_baseline.log
+```
+
+8) Run procedure: aggressive measurement
+
+8.1 Start aggressive gNB
+
+```
+sudo stdbuf -oL -eL \
+  ~/srs_harq_lab/srsRAN_Project_aggressive/build/apps/gnb/gnb \
+  -c <your_gnb_yaml> \
+  log --filename /tmp/gnb_aggressive.log \
+      --mac_level debug \
+      --fapi_level debug \
+      --phy_level info \
+      --radio_level info \
+      --all_level warning
+```
+
+8.2 Run 200 pings (aggressive)
+
+```
+sudo ip netns exec ue1 ping 10.45.1.1 -c 200 | tee ~/srs_harq_lab/harq_results/ping_aggressive_200.txt
+```
+
+Save logs:
+
+```
+sudo cp /tmp/gnb_aggressive.log ~/srs_harq_lab/harq_results/gnb_aggressive.log
+```
+
+9) Compare RTT results (one-liners)
+
+```
+echo "BASELINE:"
+grep "rtt min/avg/max/mdev" ~/srs_harq_lab/harq_results/ping_baseline_200.txt
+echo
+echo "AGGRESSIVE:"
+grep "rtt min/avg/max/mdev" ~/srs_harq_lab/harq_results/ping_aggressive_200.txt
+```
+
+10) Verify k1 logging evidence
+
+Baseline:
+```
+sudo grep -F "BASELINE-HARQ" /tmp/gnb_baseline.log | head
+```
+
+Aggressive:
+```
+sudo grep -F "AGGRESSIVE-HARQ" /tmp/gnb_aggressive.log | head
+```
+
+Count k1 candidates:
+```
+sudo grep -F "BASELINE-HARQ" /tmp/gnb_baseline.log \
+| sed -n 's/.*k1_candidate=\([0-9]\+\).*/\1/p' | sort -n | uniq -c | sort -nr | head
+
+sudo grep -F "AGGRESSIVE-HARQ" /tmp/gnb_aggressive.log \
+| sed -n 's/.*k1_candidate=\([0-9]\+\).*/\1/p' | sort -n | uniq -c | sort -nr | head
+```
+
+11) Aggressive HARQ Modification
+
+11.1 Design Rationale
+
+The objective is to reduce HARQ feedback latency by:
+
+Preferring smaller k1 values
+
+Preserving all existing validity checks
+
+Avoiding behavioral changes outside k1 selection order
+
+This corresponds to an aggressive HARQ strategy, prioritizing earlier ACK/NACK transmission opportunities.
+
+11.2 Code Modification
+
+File modified:
+
+lib/scheduler/uci_scheduling/uci_allocator_impl.cpp
+
+
+Key change:
+
+Copy k1_list (span) into a mutable container
+
+Sort ascending
+
+Iterate over sorted k1 candidates
+
+Minimal patch:
+
+```
++#include <algorithm>
++#include <vector>
+
+- for (const uint8_t k1_candidate : k1_list) {
++ std::vector<uint8_t> k1_candidates_sorted(k1_list.begin(), k1_list.end());
++ std::sort(k1_candidates_sorted.begin(), k1_candidates_sorted.end());
++ k1_candidates_sorted.erase(
++     std::unique(k1_candidates_sorted.begin(), k1_candidates_sorted.end()),
++     k1_candidates_sorted.end());
++
++ for (const uint8_t k1_candidate : k1_candidates_sorted) {
+
+
+A diagnostic log was added to verify runtime behavior:
+
+logger.warning(
+  "AGGRESSIVE-HARQ: rnti={} k0={} k1_candidate={} uci_slot={}",
+  crnti, k0, k1_candidate, uci_slot);
+```
+
+The full patch is available in:
+
+patches/aggressive-harq-k1.patch
+
+
+12) Results
+
+### 12.1 RTT Comparison
+
+| Metric         | Baseline        | Aggressive HARQ |
+|----------------|-----------------|-----------------|
+| Min RTT        | 30.184 ms       | 26.111 ms       |
+| Avg RTT        | 60.292 ms       | 46.747 ms       |
+| Max RTT        | 224.340 ms      | 131.366 ms      |
+| Jitter (mdev)  | 21.769 ms       | 15.849 ms       |
+
+
+
+12.2 HARQ Logging Evidence
+
+Aggressive HARQ runtime logs:
+
+```
+grep "AGGRESSIVE-HARQ" /tmp/gnb_mac_fapi_debug.log
+```
+
+Example:
+
+AGGRESSIVE-HARQ: rnti=0x4601 k0=0 k1_candidate=4 uci_slot=39.7
+
+
+13) Notes on Interpretation
+
+* k1 value may remain the same (e.g., k1=4)
+
+* Improvement comes from earlier evaluation and selection
+
+* Reduced deferrals lead to:
+
+    * lower average RTT
+
+    * reduced RTT variance
+
+    * shorter tail latency
+
+* Baseline results were validated using both:
+
+    * a representative unmodified run
+
+    * a clean clone baseline
+
+
+14) Repository Structure
+.
+├── patches/
+│   └── aggressive-harq-k1.patch
+├── results/
+│   ├── gnb_aggressive.log
+│   ├── gnb_baseline_clean.log
+│   ├── ping_aggressive_200.txt
+│   └── ping_baseline_200.txt
+├── scripts/
+├── notes/
+└── README.md
