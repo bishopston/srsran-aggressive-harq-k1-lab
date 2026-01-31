@@ -188,7 +188,7 @@ sudo docker ps
 
 ## 8. Run procedure: baseline measurement
 
-###### 8.1 Start baseline gNB
+#### 8.1 Start baseline gNB
 
 ```
 sudo stdbuf -oL -eL \
@@ -202,7 +202,7 @@ sudo stdbuf -oL -eL \
       --all_level warning
 ```
 
-###### 8.2 Start UE + create namespace
+#### 8.2 Start UE + create namespace
 
 Example namespace approach:
 
@@ -217,14 +217,14 @@ Start UE inside namespace (example):
 sudo ip netns exec ue1 <your_ue_command>
 ```
 
-###### 8.3 Add routes (example)
+#### 8.3 Add routes (example)
 
 ```
 sudo ip route add 10.45.0.0/16 via 10.53.1.2
 sudo ip netns exec ue1 ip route add default via 10.45.1.1 dev tun_srsue
 ```
 
-###### 8.4 Run 200 pings (baseline)
+#### 8.4 Run 200 pings (baseline)
 
 ```
 sudo ip netns exec ue1 ping 10.45.1.1 -c 200 | tee ~/srs_harq_lab/harq_results/ping_baseline_200.txt
@@ -238,7 +238,7 @@ sudo cp /tmp/gnb_baseline.log ~/srs_harq_lab/harq_results/gnb_baseline.log
 
 ## 9. Run procedure: aggressive measurement
 
-###### 9.1 Start aggressive gNB
+#### 9.1 Start aggressive gNB
 
 ```
 sudo stdbuf -oL -eL \
@@ -252,7 +252,7 @@ sudo stdbuf -oL -eL \
       --all_level warning
 ```
 
-###### 9.2 Run 200 pings (aggressive)
+#### 9.2 Run 200 pings (aggressive)
 
 ```
 sudo ip netns exec ue1 ping 10.45.1.1 -c 200 | tee ~/srs_harq_lab/harq_results/ping_aggressive_200.txt
@@ -300,7 +300,7 @@ sudo grep -F "AGGRESSIVE-HARQ" /tmp/gnb_aggressive.log \
 
 ## 12. Aggressive HARQ Modification
 
-###### 12.1 Design Rationale
+#### 12.1 Design Rationale
 
 The objective is to reduce HARQ feedback latency by:
 
@@ -312,7 +312,7 @@ The objective is to reduce HARQ feedback latency by:
 
 This corresponds to an aggressive HARQ strategy, prioritizing earlier ACK/NACK transmission opportunities.
 
-###### 12.2 Code Modification
+#### 12.2 Code Modification
 
 File modified:
 
@@ -359,7 +359,7 @@ patches/aggressive-harq-k1.patch
 
 ## 13) Results
 
-###### 13.1 RTT Comparison
+#### 13.1 RTT Comparison
 
 | Metric         | Baseline        | Aggressive HARQ |
 |----------------|-----------------|-----------------|
@@ -370,7 +370,7 @@ patches/aggressive-harq-k1.patch
 
 
 
-###### 13.2 HARQ Logging Evidence
+#### 13.2 HARQ Logging Evidence
 
 Aggressive HARQ runtime logs:
 
