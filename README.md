@@ -128,7 +128,9 @@ Apply the patch from this repo:
 
 Assuming you cloned this lab repo as ~/srsran-aggressive-harq-k1-lab:
 
+```
 git apply ~/srsran-aggressive-harq-k1-lab/patches/aggressive-harq-k1.patch
+```
 
 ### Alternative to patch application (manual copy)
 
