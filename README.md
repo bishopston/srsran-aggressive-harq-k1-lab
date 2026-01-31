@@ -9,7 +9,7 @@ This repo contains:
 
 ---
 
-## 0) What you will achieve
+## 0. What you will achieve
 
 You will:
 1) Clone **srsRAN_Project** twice (baseline + aggressive)
@@ -21,7 +21,7 @@ You will:
 
 ---
 
-## 1) Prerequisites (Ubuntu)
+## 1. Prerequisites (Ubuntu)
 
 You need:
 - git
@@ -31,7 +31,7 @@ You need:
 - iproute2
 
 
-## 2) Configuration files
+## 2. Configuration files
 
 The directory `configs/` contains reference ZMQ configurations used in this lab:
 
@@ -71,7 +71,7 @@ Using different commits may:
 - invalidate RTT comparisons
 
 
-## 3) Directory layout (recommended)
+## 3. Directory layout (recommended)
 
 Create a clean workspace:
 
@@ -95,7 +95,7 @@ Create results directory:
 mkdir -p ~/srs_harq_lab/harq_results
 ```
 
-## 4) Clone and checkout srsRAN gNB (baseline)
+## 4. Clone and checkout srsRAN gNB (baseline)
 
 ```
 cd ~/srs_harq_lab
@@ -115,7 +115,7 @@ cmake -S . -B build -G Ninja \
 cmake --build build -j 2
 ```
 
-## 5) Clone and checkout srsRAN gNB (aggressive)
+## 5. Clone and checkout srsRAN gNB (aggressive)
 
 ```
 cd ~/srs_harq_lab
@@ -155,7 +155,7 @@ cmake -S . -B build -G Ninja \
 cmake --build build -j 2
 ```
 
-## 6) Clone and checkout UE project (srsRAN_4G)
+## 6. Clone and checkout UE project (srsRAN_4G)
 
 ```
 cd ~/srs_harq_lab
@@ -178,7 +178,7 @@ cmake --build . -j 2
 
 Note: Your UE runtime YAML and ZMQ parameters must match your lab setup.
 
-## 7) Start 5G Core (Docker)
+## 7. Start 5G Core (Docker)
 
 Go to the core directory you use (example: `~/srs_harq_lab/srsRAN_Project/docker`):
 
