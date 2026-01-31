@@ -290,6 +290,20 @@ Aggressive:
 sudo grep -F "AGGRESSIVE-HARQ" /tmp/gnb_aggressive.log | head
 ```
 
+It should be mentioned here that the above "BASELINE-HARQ" logging will return values only if a logger has been inserted in the baseline uci_allocator_impl.cpp like in the aggressive scenario.
+
+```
+lib/scheduler/uci_scheduling/uci_allocator_impl.cpp
+```
+Add the following log immediately before returning the UCI allocation and build again the gNB like in paragraph 4.
+
+```
+logger.warning(
+  "BASELINE-HARQ: rnti={} k0={} k1_candidate={} uci_slot={}",
+  crnti, k0, k1_candidate, uci_slot
+);
+```
+
 Count k1 candidates:
 
 ```
