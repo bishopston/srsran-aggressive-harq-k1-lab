@@ -445,3 +445,28 @@ Compares high-percentile RTT (tail latency). Lower p95/p99 values in the aggress
 #### 15.6 Jitter Over Time (Rolling STD) (graphs/rtt_jitter_rolling_std.png)
 
 Estimates jitter as rolling standard deviation of RTT (windowed). Lower rolling STD indicates more stable latency and reduced short-term variability.
+
+The graphs can be produced with the python framework matplotlib through a script (python_scripts/make_graphs.py):
+
+```
+# From repo root
+python3 -m pip install --user numpy matplotlib
+
+python3 python_scripts/make_graphs.py \
+  --baseline results/ping_baseline_200.txt \
+  --aggressive results/ping_aggressive_200.txt \
+  --outdir graphs
+ ```
+
+
+### Notes on RF Conditions and SNR Limitations
+
+It should be noted that this experimental setup is based on a ZMQ PHY emulation, which provides an almost ideal RF environment.
+
+Despite extensive testing with reduced transmit and receive gain values on both the gNB and UE sides, no significant degradation of the Signal-to-Noise Ratio (SNR) was observed. As a result, the radio link remained highly stable, with very limited or no HARQ retransmissions triggered by channel errors.
+
+This behavior is inherent to the ZMQ-based PHY, which does not model realistic channel impairments such as fading, interference, or thermal noise. Consequently, the experiment does not aim to study HARQ behavior under varying SNR conditions or error-prone radio links.
+
+Instead, the focus of this work is on the **scheduler-level HARQ-ACK timing behavior**, isolating the impact of aggressive k1 prioritization on end-to-end latency and jitter. The observed performance improvements are therefore attributed to scheduling decisions rather than changes in link quality.
+
+Future work could extend this study by incorporating more realistic channel models or over-the-air experiments, where SNR variations and retransmissions would play a more prominent role in HARQ dynamics.
