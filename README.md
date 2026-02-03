@@ -420,3 +420,28 @@ AGGRESSIVE-HARQ: rnti=0x4601 k0=0 k1_candidate=4 uci_slot=39.7
     * a clean clone baseline
 
 
+## 15) Graphs
+
+#### 15.1 RTT Histogram (graphs/rtt_histogram.png)
+
+Compares the frequency distribution of RTT samples. A left-shift and narrower spread indicate lower delay and reduced variability under the aggressive HARQ configuration.
+
+#### 15.2 RTT Boxplot (graphs/rtt_boxplot.png)
+
+Summarizes RTT dispersion via median, interquartile range, and outliers. The aggressive scenario shows a lower median and fewer/lower outliers, highlighting improved stability.
+
+#### 15.3 RTT per Packet / Time Series (graphs/rtt_timeseries.png)
+
+Plots RTT for each ICMP sequence. It reveals transient spikes and bursty behavior; the aggressive scenario exhibits fewer and smaller spikes, reducing tail events.
+
+#### 15.4 RTT CDF (graphs/rtt_cdf.png)
+
+The cumulative distribution function shows the fraction of packets below a given RTT threshold. A curve closer to the left and rising faster indicates consistently lower RTT across the whole distribution.
+
+#### 15.5 Tail Percentiles (p95/p99) (graphs/rtt_percentiles_p95_p99.png)
+
+Compares high-percentile RTT (tail latency). Lower p95/p99 values in the aggressive scenario confirm significant reduction of worst-case delays.
+
+#### 15.6 Jitter Over Time (Rolling STD) (graphs/rtt_jitter_rolling_std.png)
+
+Estimates jitter as rolling standard deviation of RTT (windowed). Lower rolling STD indicates more stable latency and reduced short-term variability.
